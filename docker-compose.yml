@@ -1,0 +1,41 @@
+version: "3"
+services:
+  backend:
+    build: . # Point to the server folder for the backend
+    container_name: backend
+    ports:
+      - "5000:5000" # Exposing port 5000 for backend
+    networks:
+      - mern-network
+    depends_on:
+      - db # Wait for db service before starting backend
+    environment:
+      - NODE_ENV=production # Example environment variable for the backend
+      - DB_URI=mongodb://mongo:27017/mydb # MongoDB URI
+
+  frontend:
+    build: ./client # Point to the client folder for the frontend
+    container_name: frontend
+    ports:
+      - "5173:5173" # Exposing port 5173 for frontend (check this port)
+    networks:
+      - mern-network
+    depends_on:
+      - backend # Wait for backend service before starting frontend
+
+  db:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017" # Exposing port 27017 for MongoDB
+    networks:
+      - mern-network
+    volumes:
+      - mongo-data:/data/db # Persist MongoDB data
+
+networks:
+  mern-network:
+    driver: bridge # Default bridge network
+
+volumes:
+  mongo-data: # Named volume to persist MongoDB data
