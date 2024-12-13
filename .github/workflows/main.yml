@@ -1,0 +1,72 @@
+name: MERN CI/CD Workflow
+
+on:
+  push:
+    branches:
+      - main  # Trigger workflow on push to the main branch
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js for the server
+      - name: Set up Node.js for Server
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # Step 3: Install server dependencies
+      - name: Install Server Dependencies
+        run: npm install
+
+      # Step 4: Run server tests (optional)
+      - name: Run Server Tests
+        run: npm test
+
+      # Step 5: Set up Node.js for the client
+      - name: Set up Node.js for Client
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # Step 6: Install client dependencies
+      - name: Install Client Dependencies
+        run: |
+          cd client
+          npm install
+
+      # Step 7: Build the client
+      - name: Build Client
+        run: |
+          cd client
+          npm run build
+
+      # Step 8: Deploy the server to VPS
+      - name: Deploy Server to VPS
+        uses: appleboy/scp-action@v0.1.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ./*  # Deploy server files
+          target: /var/www/server  # Server target directory
+
+      # Step 9: Deploy the client build to VPS
+      - name: Deploy Client to VPS
+        uses: appleboy/scp-action@v0.1.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ./client/build/*
+          target: /var/www/client  # Client target directory
+
+      # Step 10: Restart backend service on VPS
+      - name: Restart Server Service
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo systemctl restart my-backend-service"
